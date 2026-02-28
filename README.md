@@ -37,7 +37,7 @@ The downloader reads:
 - `source/isaac_lab_tutorial/isaac_lab_tutorial/assets/Jetbot/.collect.mapping.json`
 - `source/isaac_lab_tutorial/isaac_lab_tutorial/assets/Turtlebot/.collect.mapping.json`
 
-> Note: JetBot manifest uses public S3 asset URLs under `Assets/Isaac/5.1/...`.
+> Note: On this 4.5 branch, JetBot manifest uses `Assets/Isaac/4.5/...` URLs.
 
 ---
 

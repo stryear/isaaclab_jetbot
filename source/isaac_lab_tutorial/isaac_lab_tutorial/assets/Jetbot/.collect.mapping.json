@@ -2,16 +2,8 @@
     "version": "1.0",
     "file_records": [
         {
-            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Robots/NVIDIA/Jetbot/jetbot.usd",
-            "source_hash": "2ceae5eab17692d04c61586e4e4dced4033a98c2",
-            "target_url": "./jetbot.usd",
-            "target_hash": "2ceae5eab17692d04c61586e4e4dced4033a98c2"
-        },
-        {
-            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/5.1/Isaac/Robots/NVIDIA/Jetbot/configuration/jetbot_robot_schema.usd",
-            "source_hash": "6797e1fb818b9cefbf3fca530af2cd4a7555a318",
-            "target_url": "./configuration/jetbot_robot_schema.usd",
-            "target_hash": "6797e1fb818b9cefbf3fca530af2cd4a7555a318"
+            "source_url": "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/Isaac/Robots/Jetbot/jetbot.usd",
+            "target_url": "./jetbot.usd"
         }
     ]
 }
