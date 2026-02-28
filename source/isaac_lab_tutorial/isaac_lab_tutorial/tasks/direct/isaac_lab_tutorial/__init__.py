@@ -32,3 +32,13 @@ gym.register(
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_sphere_follow_ppo_cfg.yaml",
     },
 )
+
+gym.register(
+    id="Isaac-Lab-Tutorial-SphereFollow-TurtleBot3-Direct-v0",
+    entry_point=f"{__name__}.isaac_lab_tutorial_env:SphereFollowEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.isaac_lab_tutorial_env_cfg:SphereFollowTurtleBot3EnvCfg",
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_sphere_follow_ppo_cfg.yaml",
+    },
+)

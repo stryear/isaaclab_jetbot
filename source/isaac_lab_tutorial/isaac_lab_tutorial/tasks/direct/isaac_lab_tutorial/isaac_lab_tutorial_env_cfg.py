@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from isaac_lab_tutorial.robots.jetbot import JETBOT_CONFIG
+from isaac_lab_tutorial.robots.turtlebot3_burger import TURTLEBOT3_BURGER_CONFIG
 
 from isaaclab.assets import ArticulationCfg
 from isaaclab.envs import DirectRLEnvCfg
@@ -57,3 +58,10 @@ class SphereFollowEnvCfg(DirectRLEnvCfg):
     time_penalty: float = -0.01
     alignment_reward_scale: float = 0.5
     approach_reward_scale: float = 1.0
+
+
+@configclass
+class SphereFollowTurtleBot3EnvCfg(SphereFollowEnvCfg):
+    # robot(s)
+    robot_cfg: ArticulationCfg = TURTLEBOT3_BURGER_CONFIG.replace(prim_path="/World/envs/env_.*/Robot")
+    dof_names = ["wheel_left_joint", "wheel_right_joint"]
