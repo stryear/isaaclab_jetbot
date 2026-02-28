@@ -10,6 +10,10 @@ Python module serving as a project/extension template.
 # Register Gym environments.
 from .tasks import *
 
-# Register UI extensions.
-from .ui_extension_example import *
-from .sphere_follow_extension import *
+# Register UI extensions only when Omniverse UI modules are available.
+# This keeps headless workflows (train/list-envs) usable.
+try:
+    from .ui_extension_example import *
+    from .sphere_follow_extension import *
+except ModuleNotFoundError:
+    pass
