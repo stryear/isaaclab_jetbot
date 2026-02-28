@@ -13,6 +13,7 @@
 **/*.usda
 **/*.usdc
 **/*.usdz
+**/*.usd.part
 
 # Python
 .DS_Store
@@ -63,3 +64,8 @@ _build
 
 # Teleop Recorded Dataset
 datasets
+
+# Local tool metadata / training artifacts (do not commit)
+.serena/
+sphere_follow_direct/
+AGENTS.md

@@ -3,16 +3,22 @@
 # ==============================================================================
 
 SHELL := /bin/bash
-TASK := Isaac-Lab-Tutorial-SphereFollow-Direct-v0
+TASK_JETBOT := Isaac-Lab-Tutorial-SphereFollow-Direct-v0
+TASK_TURTLEBOT3 := Isaac-Lab-Tutorial-SphereFollow-TurtleBot3-Direct-v0
+ROBOT ?= jetbot
+TASK ?= $(TASK_JETBOT)
+ifneq (,$(filter $(ROBOT),turtlebot3_burger turtlebot3 turtlebot tb3 burger))
+TASK := $(TASK_TURTLEBOT3)
+endif
 NUM_ENVS ?= 100
 ALGORITHM ?= PPO
 DEVICE ?= cuda:0
 ML_FRAMEWORK ?= torch
 
-.PHONY: help install list-envs random-agent zero-agent train play lint format check
+.PHONY: help install fetch-assets list-envs random-agent zero-agent train play lint format check
 
 help: ## Show this help message
-	@echo "IsaacLabTutorial - JetBot Navigation RL Environment"
+	@echo "IsaacLabTutorial - Mobile Robot Navigation RL Environment"
 	@echo ""
 	@echo "Usage: make <target> [VAR=value]"
 	@echo ""
@@ -23,12 +29,16 @@ help: ## Show this help message
 	@echo "Variables:"
 	@echo "  NUM_ENVS=$(NUM_ENVS)        Number of parallel environments"
 	@echo "  ALGORITHM=$(ALGORITHM)          RL algorithm (PPO, AMP, IPPO, MAPPO)"
+	@echo "  ROBOT=$(ROBOT)            Robot profile (jetbot, turtlebot3_burger)"
+	@echo "  TASK=$(TASK)              Task selected from ROBOT or explicit override"
 	@echo "  DEVICE=$(DEVICE)        Compute device"
 	@echo "  ML_FRAMEWORK=$(ML_FRAMEWORK)     ML framework (torch, jax, jax-numpy)"
 	@echo ""
 	@echo "Examples:"
+	@echo "  make fetch-assets ROBOT=all"
 	@echo "  make install"
 	@echo "  make train ALGORITHM=PPO NUM_ENVS=100"
+	@echo "  make train ROBOT=turtlebot3_burger NUM_ENVS=100"
 	@echo "  make play CHECKPOINT=logs/skrl/.../best_agent.pt"
 	@echo "  make random-agent NUM_ENVS=64"
 
@@ -36,7 +46,10 @@ help: ## Show this help message
 
 install: ## Install the isaac_lab_tutorial package in editable mode
 	cd source/isaac_lab_tutorial && pip install -e .
-	@echo "Installation complete. Run 'make list-envs' to verify."
+	@echo "Installation complete. Run 'make fetch-assets ROBOT=all' then 'make list-envs'."
+
+fetch-assets: ## Download USD assets from .collect.mapping.json manifests
+	python3 scripts/download_assets.py --robot $(ROBOT) $(if $(FORCE),--force,)
 
 # ---- Environment Inspection --------------------------------------------------
 

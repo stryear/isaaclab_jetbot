@@ -14,7 +14,9 @@ set -euo pipefail
 
 # ---- Configuration -----------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TASK_NAME="Isaac-Lab-Tutorial-SphereFollow-Direct-v0"
+TASK_NAME_JETBOT="Isaac-Lab-Tutorial-SphereFollow-Direct-v0"
+TASK_NAME_TURTLEBOT3="Isaac-Lab-Tutorial-SphereFollow-TurtleBot3-Direct-v0"
+DEFAULT_ROBOT="jetbot"
 DEFAULT_NUM_ENVS=100
 DEFAULT_ALGORITHM="PPO"
 DEFAULT_DEVICE="cuda:0"
@@ -31,7 +33,7 @@ NC='\033[0m' # No Color
 print_header() {
     echo -e "${CYAN}"
     echo "=================================================================="
-    echo "  IsaacLabTutorial - JetBot Navigation RL Environment"
+    echo "  IsaacLabTutorial - Mobile Robot Navigation RL Environment"
     echo "=================================================================="
     echo -e "${NC}"
 }
@@ -42,6 +44,7 @@ print_usage() {
     echo ""
     echo -e "${YELLOW}Commands:${NC}"
     echo "  install            Install the isaac_lab_tutorial package (editable mode)"
+    echo "  fetch-assets       Download robot assets from .collect.mapping.json manifests"
     echo "  list-envs          List all registered environments"
     echo "  random-agent       Run environment with random actions"
     echo "  zero-agent         Run environment with zero actions"
@@ -52,6 +55,11 @@ print_usage() {
     echo -e "${YELLOW}Options (for random-agent / zero-agent):${NC}"
     echo "  --num_envs N       Number of parallel environments (default: ${DEFAULT_NUM_ENVS})"
     echo "  --device DEVICE    Compute device (default: ${DEFAULT_DEVICE})"
+    echo "  --robot ROBOT      Robot profile: jetbot | turtlebot3_burger (default: ${DEFAULT_ROBOT})"
+    echo ""
+    echo -e "${YELLOW}Options (for fetch-assets):${NC}"
+    echo "  --robot ROBOT      Asset profile: jetbot | turtlebot3_burger | all (default: all)"
+    echo "  --force            Re-download assets even if files already exist"
     echo ""
     echo -e "${YELLOW}Options (for train):${NC}"
     echo "  --algorithm ALG    RL algorithm: PPO, AMP, IPPO, MAPPO (default: ${DEFAULT_ALGORITHM})"
@@ -62,6 +70,7 @@ print_usage() {
     echo "  --ml_framework FW  ML framework: torch, jax, jax-numpy (default: ${DEFAULT_ML_FRAMEWORK})"
     echo "  --distributed      Enable multi-GPU training"
     echo "  --video            Record training videos"
+    echo "  --robot ROBOT      Robot profile: jetbot | turtlebot3_burger (default: ${DEFAULT_ROBOT})"
     echo ""
     echo -e "${YELLOW}Options (for play):${NC}"
     echo "  --checkpoint PATH  Path to trained model checkpoint"
@@ -69,10 +78,13 @@ print_usage() {
     echo "  --num_envs N       Number of environments (default: ${DEFAULT_NUM_ENVS})"
     echo "  --real-time        Run evaluation in real-time"
     echo "  --video            Record evaluation video"
+    echo "  --robot ROBOT      Robot profile: jetbot | turtlebot3_burger (default: ${DEFAULT_ROBOT})"
     echo ""
     echo -e "${YELLOW}Examples:${NC}"
     echo "  ./launch.sh install"
+    echo "  ./launch.sh fetch-assets --robot all"
     echo "  ./launch.sh train --algorithm PPO --num_envs 100"
+    echo "  ./launch.sh train --algorithm PPO --num_envs 100 --robot turtlebot3_burger"
     echo "  ./launch.sh train --algorithm AMP --num_envs 50 --max_iterations 1000"
     echo "  ./launch.sh play --checkpoint logs/skrl/.../checkpoints/best_agent.pt"
     echo "  ./launch.sh random-agent --num_envs 64"
@@ -110,6 +122,54 @@ check_prerequisites() {
     echo ""
 }
 
+resolve_task_name() {
+    local robot="${1,,}"
+    case "${robot}" in
+        jetbot|jb)
+            echo "${TASK_NAME_JETBOT}"
+            ;;
+        turtlebot3_burger|turtlebot3|turtlebot|tb3|burger)
+            echo "${TASK_NAME_TURTLEBOT3}"
+            ;;
+        *)
+            echo -e "${RED}[ERROR]${NC} Unknown robot profile: ${1}" >&2
+            echo -e "  Supported values: ${YELLOW}jetbot${NC}, ${YELLOW}turtlebot3_burger${NC}" >&2
+            exit 1
+            ;;
+    esac
+}
+
+SELECTED_TASK="${TASK_NAME_JETBOT}"
+FILTERED_ARGS=()
+
+extract_robot_arg() {
+    local robot="${DEFAULT_ROBOT}"
+    FILTERED_ARGS=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --robot)
+                if [[ $# -lt 2 ]]; then
+                    echo -e "${RED}[ERROR]${NC} Missing value for --robot"
+                    exit 1
+                fi
+                robot="$2"
+                shift 2
+                ;;
+            --robot=*)
+                robot="${1#*=}"
+                shift
+                ;;
+            *)
+                FILTERED_ARGS+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    SELECTED_TASK="$(resolve_task_name "${robot}")"
+}
+
 # ---- Commands ----------------------------------------------------------------
 
 cmd_install() {
@@ -121,47 +181,52 @@ cmd_install() {
     echo -e "  Run '${YELLOW}./launch.sh list-envs${NC}' to verify."
 }
 
+cmd_fetch_assets() {
+    echo -e "${CYAN}[ASSETS]${NC} Fetching robot assets..."
+    python3 -u "${SCRIPT_DIR}/scripts/download_assets.py" "$@"
+}
+
 cmd_list_envs() {
     echo -e "${CYAN}[LIST]${NC} Listing registered environments..."
     python3 "${SCRIPT_DIR}/scripts/list_envs.py"
 }
 
 cmd_random_agent() {
-    local extra_args=("$@")
+    extract_robot_arg "$@"
     echo -e "${CYAN}[RUN]${NC} Running random action agent..."
-    echo -e "  Task: ${YELLOW}${TASK_NAME}${NC}"
+    echo -e "  Task: ${YELLOW}${SELECTED_TASK}${NC}"
     python3 "${SCRIPT_DIR}/scripts/random_agent.py" \
-        --task "${TASK_NAME}" \
+        --task "${SELECTED_TASK}" \
         --num_envs "${DEFAULT_NUM_ENVS}" \
-        "${extra_args[@]}"
+        "${FILTERED_ARGS[@]}"
 }
 
 cmd_zero_agent() {
-    local extra_args=("$@")
+    extract_robot_arg "$@"
     echo -e "${CYAN}[RUN]${NC} Running zero action agent..."
-    echo -e "  Task: ${YELLOW}${TASK_NAME}${NC}"
+    echo -e "  Task: ${YELLOW}${SELECTED_TASK}${NC}"
     python3 "${SCRIPT_DIR}/scripts/zero_agent.py" \
-        --task "${TASK_NAME}" \
+        --task "${SELECTED_TASK}" \
         --num_envs "${DEFAULT_NUM_ENVS}" \
-        "${extra_args[@]}"
+        "${FILTERED_ARGS[@]}"
 }
 
 cmd_train() {
-    local extra_args=("$@")
+    extract_robot_arg "$@"
     echo -e "${CYAN}[TRAIN]${NC} Starting RL training..."
-    echo -e "  Task: ${YELLOW}${TASK_NAME}${NC}"
+    echo -e "  Task: ${YELLOW}${SELECTED_TASK}${NC}"
     python3 "${SCRIPT_DIR}/scripts/skrl/train.py" \
-        --task "${TASK_NAME}" \
-        "${extra_args[@]}"
+        --task "${SELECTED_TASK}" \
+        "${FILTERED_ARGS[@]}"
 }
 
 cmd_play() {
-    local extra_args=("$@")
+    extract_robot_arg "$@"
     echo -e "${CYAN}[PLAY]${NC} Evaluating trained agent..."
-    echo -e "  Task: ${YELLOW}${TASK_NAME}${NC}"
+    echo -e "  Task: ${YELLOW}${SELECTED_TASK}${NC}"
     python3 "${SCRIPT_DIR}/scripts/skrl/play.py" \
-        --task "${TASK_NAME}" \
-        "${extra_args[@]}"
+        --task "${SELECTED_TASK}" \
+        "${FILTERED_ARGS[@]}"
 }
 
 # ---- Main Entry Point --------------------------------------------------------
@@ -177,6 +242,9 @@ shift
 case "${COMMAND}" in
     install)
         cmd_install
+        ;;
+    fetch-assets|fetch_assets|assets)
+        cmd_fetch_assets "$@"
         ;;
     list-envs|list_envs)
         cmd_list_envs
