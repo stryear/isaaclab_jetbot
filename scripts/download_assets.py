@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -57,6 +58,45 @@ def _resolve_target(manifest_dir: Path, rel_path: str) -> Path:
     return candidate
 
 
+def _human_size(num_bytes: float) -> str:
+    units = ["B", "KB", "MB", "GB", "TB"]
+    size = float(num_bytes)
+    for unit in units:
+        if size < 1024.0 or unit == units[-1]:
+            if unit == "B":
+                return f"{int(size)}{unit}"
+            return f"{size:.1f}{unit}"
+        size /= 1024.0
+    return f"{int(num_bytes)}B"
+
+
+def _progress_line(
+    filename: str,
+    downloaded: int,
+    total: int | None,
+    start_time: float,
+    bar_width: int = 24,
+) -> str:
+    elapsed = max(time.monotonic() - start_time, 1e-6)
+    speed = downloaded / elapsed
+    if total and total > 0:
+        ratio = min(downloaded / total, 1.0)
+        filled = int(bar_width * ratio)
+        bar = "#" * filled + "-" * (bar_width - filled)
+        eta = (total - downloaded) / speed if speed > 0 else 0.0
+        return (
+            f"  [DOWNLOADING] {filename} "
+            f"[{bar}] {ratio * 100:6.2f}% "
+            f"{_human_size(downloaded)}/{_human_size(total)} "
+            f"{_human_size(speed)}/s ETA {eta:5.1f}s"
+        )
+    return (
+        f"  [DOWNLOADING] {filename} "
+        f"{_human_size(downloaded)} downloaded "
+        f"{_human_size(speed)}/s"
+    )
+
+
 def _download_to_file(url: str, output_path: Path, timeout: int, retries: int) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = output_path.with_suffix(output_path.suffix + ".part")
@@ -66,11 +106,31 @@ def _download_to_file(url: str, output_path: Path, timeout: int, retries: int) -
     for attempt in range(retries + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as response, tmp_path.open("wb") as out:
+                total_raw = response.headers.get("Content-Length")
+                total_size = int(total_raw) if total_raw and total_raw.isdigit() else None
+                downloaded = 0
+                start_time = time.monotonic()
+                last_update = 0.0
+                filename = output_path.name
+                if total_size is not None:
+                    print(
+                        f"  [GET] {filename} (size={_human_size(total_size)}, "
+                        f"attempt={attempt + 1}/{retries + 1})"
+                    )
+                else:
+                    print(f"  [GET] {filename} (size=unknown, attempt={attempt + 1}/{retries + 1})")
+
                 while True:
                     chunk = response.read(1024 * 1024)
                     if not chunk:
                         break
                     out.write(chunk)
+                    downloaded += len(chunk)
+                    now = time.monotonic()
+                    if (now - last_update) >= 0.2:
+                        print(_progress_line(filename, downloaded, total_size, start_time), end="\r", flush=True)
+                        last_update = now
+                print(_progress_line(filename, downloaded, total_size, start_time), flush=True)
             tmp_path.replace(output_path)
             return
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
@@ -78,6 +138,8 @@ def _download_to_file(url: str, output_path: Path, timeout: int, retries: int) -
             if tmp_path.exists():
                 tmp_path.unlink()
             if attempt < retries:
+                # Ensure retry message starts on a new line after progress updates.
+                print("")
                 print(f"  [RETRY] {url} ({attempt + 1}/{retries}) due to: {exc}")
 
     raise RuntimeError(f"Failed to download {url}: {last_error}")
@@ -155,7 +217,8 @@ def main() -> int:
             failed += 1
             continue
 
-        for record in records:
+        total_records = len(records)
+        for record_idx, record in enumerate(records, start=1):
             source_url = record.get("source_url")
             target_rel = record.get("target_url")
             expected_hash = record.get("target_hash") or record.get("source_hash")
@@ -171,6 +234,9 @@ def main() -> int:
                 print(f"  [ERROR] {exc}")
                 failed += 1
                 continue
+
+            print(f"  [STATUS] ({record_idx}/{total_records}) target={target_path.name}")
+            print(f"  [SOURCE] {source_url}")
 
             if target_path.exists() and not args.force:
                 if args.verify_hash and expected_hash:
@@ -191,7 +257,6 @@ def main() -> int:
                 downloaded += 1
                 continue
 
-            print(f"  [GET] {source_url}")
             try:
                 _download_to_file(source_url, target_path, timeout=args.timeout, retries=args.retries)
                 if args.verify_hash and expected_hash:
