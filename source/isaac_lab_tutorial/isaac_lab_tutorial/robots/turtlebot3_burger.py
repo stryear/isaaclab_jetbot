@@ -10,7 +10,10 @@ _TURTLEBOT3_BURGER_USD = (
 
 
 TURTLEBOT3_BURGER_CONFIG = ArticulationCfg(
-    spawn=sim_utils.UsdFileCfg(usd_path=str(_TURTLEBOT3_BURGER_USD)),
+    spawn=sim_utils.UsdFileCfg(
+        usd_path=str(_TURTLEBOT3_BURGER_USD),
+        activate_contact_sensors=True,
+    ),
     actuators={
         "wheel_acts": ImplicitActuatorCfg(
             joint_names_expr=["wheel_left_joint", "wheel_right_joint"],
