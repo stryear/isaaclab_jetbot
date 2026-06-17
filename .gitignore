@@ -69,3 +69,30 @@ datasets
 .serena/
 sphere_follow_direct/
 AGENTS.md
+CLAUDE.md
+lidar_junction_direct/
+lidar_nav_direct/
+outputs/
+.claude/
+.vscode/
+
+rosbag2_*/
+lidar_short_nav_*/
+gazebo_smoke_*/
+logs/
+demos/
+
+# Local scratch/output files
+tmp/
+nohup.out
+.codex
+
+# Exported policies and checkpoints generated during experiments
+/policy_*.json
+/policy_*.onnx
+/policy_*.pt
+
+# Accidental local files / backups
+/argparse
+/sys
+*.backup.*
