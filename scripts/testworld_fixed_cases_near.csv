@@ -1,0 +1,10 @@
+name,spawn_x,spawn_y,spawn_yaw,goal_x,goal_y,turn_cmd
+x_left_near,-5,-4,0,-3.444,-2.444,left
+x_right_near,-5,-4,0,-2.997,-4.910,right
+x_back_straight_near,-5,-4,0,-7.200,-4.000,straight
+x_back_right_near,-5,-4,0,-6.670,-2.568,right
+x_back_left_near,-5,-4,0,-6.790,-5.279,left
+l_left_near,-2,-20,0,-0.344,-18.551,left
+l_right_near,12,20,0,13.802,18.738,right
+t_left_near,10,2,0,8.649,3.737,left
+t_right_near,10,2,0,9.638,4.170,right

@@ -1,0 +1,10 @@
+name,spawn_x,spawn_y,spawn_yaw,goal_x,goal_y,turn_cmd
+x_left,-5,-4,0,1,2,left
+x_right,-5,-4,0,6,-9,right
+x_back_straight,-5,-4,0,-17,-4,straight
+x_back_right,-5,-4,0,-12,2,right
+x_back_left,-5,-4,0,-12,-9,left
+l_left,-2,-20,0,6,-13,left
+l_right,12,20,0,22,13,right
+t_left,10,2,0,-4,20,left
+t_right,10,2,0,7,20,right

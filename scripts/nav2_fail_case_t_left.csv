@@ -1,0 +1,2 @@
+name,spawn_x,spawn_y,spawn_yaw,goal_x,goal_y,turn_cmd
+t_left,-5,-4,0,-4,20,left
